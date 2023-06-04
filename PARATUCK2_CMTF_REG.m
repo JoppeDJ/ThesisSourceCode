@@ -1,7 +1,4 @@
 function [Wres, D2res, Vtres, D1res, Ztres, Htres, cD1res, cD2res] = PARATUCK2_CMTF_REG(Jac, F, bf1, bf1d, bf2, bf2d, r1, r2, samples)
-%PARATUCK2 Computes PARATUCK2 decomposition of given three-way tensor
-%taking into account the neural network structure.
-
     % Sets the seed for reproducibility of results
     rng(12422);
 
@@ -10,13 +7,12 @@ function [Wres, D2res, Vtres, D1res, Ztres, Htres, cD1res, cD2res] = PARATUCK2_C
     d2 = length(bf2d);
 
     lambda =  1; %0.001;
-    lambda1 = 0.0;
-    lambda2 = 0.0;
+    lambda1 = 0.0; % niet gebruikt
+    lambda2 = 0.0; % niet gebruikt
     
     cD1 = zeros(r1*d1,1);
     cD2 = zeros(r2*(d2+1),1);
     
-    %[W, D2, Vt, D1, Zt] = UNSTR_PARATUCK2(Jac, r1, r2, 5);
     W = randn(I, r2);
     D2 = randn(K, r2);
     Vt = randn(r2, r1);
@@ -143,7 +139,6 @@ function [W] = updateW(X, F, Ht, D2, Vt, D1, Zt, I, J, K, r2, lambda)
             diag(D2(i,:)) * Vt * diag(D1(i,:)) * Zt;
     end
 
-    %W = [unfoldX lambda*F] / [Fw lambda*Ht]; % Paper gebruikt F^T (lijkt verkeerd)
     W = [tens2mat(X,1,[2 3]) lambda*F] / [Fw lambda*Ht];
 end
 
@@ -153,7 +148,7 @@ function [D2] = updateD2(X, W, Vt, Zt, D1, K, I, r1, r2)
         Fk = Zt' * diag(D1(k,:)) * Vt';
         xk = reshape(X(:,:,k), numel(X(:,:,k)), 1);
 
-        D2(k,:) = (kr(Fk, W) \ xk)'; % transpose van kathri-rao nodig (?)
+        D2(k,:) = (kr(Fk, W) \ xk)';
     end
 
 %     rowList = zeros(K * r1 * r2 * I,1);
