@@ -1,6 +1,4 @@
 function [Wres, D2res, Vtres, D1res, Ztres, cD1res, cD2res] = PARATUCK2_CTD(Jac, bf1, bf1d, bf2d, r1, r2, samples)
-%PARATUCK2 Computes PARATUCK2 decomposition of given three-way tensor
-%taking into account the neural network structure.
     
     % Sets the seed for reproducibility of results
     rng(58162);
@@ -71,10 +69,6 @@ function [Wres, D2res, Vtres, D1res, Ztres, cD1res, cD2res] = PARATUCK2_CTD(Jac,
             minError = Jerror;
         end
 
-%         if(Jerror < 0.0001 || abs(Jerror-lastError) < 0.000005)
-%             break
-%         end
-
         lastError = Jerror;
         iterations = iterations + 1;
     end
@@ -141,8 +135,6 @@ function [D2] = updateD2(X, W, Vt, Zt, D1, K, I, r1, r2)
     D2 = reshape(d2, r2, K)'; 
 end
 
-% Optimalisatie mogelijk: element per element output berekenen i.p.v.
-% in 1 keer zoals nu gebeurd.
 function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
 %     x = zeros(I*J*K, 1);
 %     for k=1:K
@@ -157,15 +149,13 @@ function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
 % 
 %     vt = Z \ x; 
 % 
-%     Vt = reshape(vt, r2, r1); % Afhankelijk van hoe reshape gebeurd kan dit fout zijn
+%     Vt = reshape(vt, r2, r1);
     
     rowList = zeros(K*r1*I*r2,1);
     colList = zeros(K*r1*I*r2,1);
     valList = zeros(K*r1*I*r2,1);
 
     currentIdx = 1;
-
-    %Z = zeros(K * r1 * I, r1 * r2);
 
     Jtest = zeros(K * r1 * I, 1);
     for i=1:K
@@ -184,9 +174,6 @@ function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
             end
         end
 
-        %Z((i-1) * r1 * I + 1 : i * r1 * I, :) = ...
-        % kron(diag(D1(i,:)), W*diag(D2(i,:)));
-
         temp = X(:,:,i) * pinv(Zt);
         Jtest((i-1)*r1*I + 1 : i *r1*I ,:) = ...
             reshape(temp, [], 1);
@@ -202,10 +189,10 @@ end
 function [D1] = updateD1(X, W, Vt, Zt, D2, K, I, r1)
 %     D1 = zeros(K, r1);
 %     for k=1:K
-%         Fk = W * diag(D2(k,:))' * Vt;
-%         xk = reshape(X(:,:,k)', numel(X(:,:,k)), 1);
+%         Fk = W * diag(D2(k,:)) * Vt;
+%         xk = reshape(X(:,:,k), numel(X(:,:,k)), 1);
 % 
-%         D1(k,:) = (kr(Fk, Zt') \ xk)'; % transpose van kathri-rao nodig (?)
+%         D1(k,:) = (kr(Zt', Fk) \ xk)'; % transpose van kathri-rao nodig (?)
 %     end
 
     rowList = zeros(K * r1 * r1 * I,1);
@@ -243,8 +230,6 @@ function [D1] = updateD1(X, W, Vt, Zt, D2, K, I, r1)
     D1 = reshape(d1, r1, K)'; 
 end
 
-% Optimalisatie mogelijk: element per element output berekenen i.p.v.
-% in 1 keer zoals nu gebeurd.
 function [Zt] = updateZt(X, W, D1, Vt, D2, I, J, K, r1)
     unfoldX = zeros(I*K, J);
     for i=1:K
@@ -257,12 +242,11 @@ function [Zt] = updateZt(X, W, D1, Vt, D2, I, J, K, r1)
             W*diag(D2(i,:))*Vt*diag(D1(i,:));
     end
 
-    Zt = F \ unfoldX; % Paper gebruikt F^T (lijkt verkeerd)
+    Zt = F \ unfoldX;
 end
 
 function [cD1, D1] = update_cD1(D1, Zt, samples, bf1d, K, r1, d1)
     % Projectiestrategie
-    %X = sparse(r1*K, r1*d1);
     rowList = zeros(d1*K*r1,1);
     colList = zeros(d1*K*r1,1);
     valList = zeros(d1*K*r1,1);

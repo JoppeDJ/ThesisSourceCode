@@ -1,4 +1,5 @@
 function [Wres, D2res, Vtres, D1res, Ztres, Htres, cD1res, cD2res] = PARATUCK2_CMTF_REG(Jac, F, bf1, bf1d, bf2, bf2d, r1, r2, samples)
+    
     % Sets the seed for reproducibility of results
     rng(12422);
 
@@ -6,7 +7,7 @@ function [Wres, D2res, Vtres, D1res, Ztres, Htres, cD1res, cD2res] = PARATUCK2_C
     d1 = length(bf1d);
     d2 = length(bf2d);
 
-    lambda =  1; %0.001;
+    lambda =  0.001;
     lambda1 = 0.0; % niet gebruikt
     lambda2 = 0.0; % niet gebruikt
     
@@ -105,17 +106,9 @@ function [Wres, D2res, Vtres, D1res, Ztres, Htres, cD1res, cD2res] = PARATUCK2_C
 
             minError = Ferror;
         end
-
-        if(error < 0.000001 || abs(error-lastError) < 0.00000005)
-            break
-        end
         
         if(mod(i,5) == 0 && lambda < 1)
-             %if(lambda * 3 < 1)
              lambda = lambda * 3;
-             %else
-             %   lambda = 1;
-             %end
         end
         lastError = error;
     end
@@ -143,46 +136,46 @@ function [W] = updateW(X, F, Ht, D2, Vt, D1, Zt, I, J, K, r2, lambda)
 end
 
 function [D2] = updateD2(X, W, Vt, Zt, D1, K, I, r1, r2)
-    D2 = zeros(K, r2);
-    for k=1:K
-        Fk = Zt' * diag(D1(k,:)) * Vt';
-        xk = reshape(X(:,:,k), numel(X(:,:,k)), 1);
-
-        D2(k,:) = (kr(Fk, W) \ xk)';
-    end
-
-%     rowList = zeros(K * r1 * r2 * I,1);
-%     colList = zeros(K * r1 * r2 * I,1);
-%     valList = zeros(K * r1 * r2 * I,1);
-%     currentIdx = 1;
+%     D2 = zeros(K, r2);
+%     for k=1:K
+%         Fk = Zt' * diag(D1(k,:)) * Vt';
+%         xk = reshape(X(:,:,k), numel(X(:,:,k)), 1);
 % 
-%     Jtest = zeros(K * I * r1,1);
-%     
-%     for i=1:K
-%         
-%         B = Vt * diag(D1(i,:));
-%         C = kr(B', W);
-% 
-%         for j=1: I*r1
-%             for k=1:r2
-%                 rowList(currentIdx) = (i-1) * r1 * I + j;
-%                 colList(currentIdx) = (i-1) * r2 + k;
-%                 valList(currentIdx) = C(j,k);
-% 
-%                 currentIdx = currentIdx + 1;
-%             end
-%         end
-% 
-%         temp = X(:,:,i) * pinv(Zt);
-%         Jtest((i-1) * I * r1 + 1 : i * I * r1, :) = ...
-%             reshape(temp, [],1);
+%         D2(k,:) = (kr(Fk, W) \ xk)';
 %     end
-%     
-%     Z = sparse(rowList, colList, valList);
-% 
-%     d2 = Z \ Jtest; 
-% 
-%     D2 = reshape(d2, r2, K)'; 
+
+    rowList = zeros(K * r1 * r2 * I,1);
+    colList = zeros(K * r1 * r2 * I,1);
+    valList = zeros(K * r1 * r2 * I,1);
+    currentIdx = 1;
+
+    Jtest = zeros(K * I * r1,1);
+    
+    for i=1:K
+        
+        B = Vt * diag(D1(i,:));
+        C = kr(B', W);
+
+        for j=1: I*r1
+            for k=1:r2
+                rowList(currentIdx) = (i-1) * r1 * I + j;
+                colList(currentIdx) = (i-1) * r2 + k;
+                valList(currentIdx) = C(j,k);
+
+                currentIdx = currentIdx + 1;
+            end
+        end
+
+        temp = X(:,:,i) * pinv(Zt);
+        Jtest((i-1) * I * r1 + 1 : i * I * r1, :) = ...
+            reshape(temp, [],1);
+    end
+    
+    Z = sparse(rowList, colList, valList);
+
+    d2 = Z \ Jtest; 
+
+    D2 = reshape(d2, r2, K)'; 
 end
 
 function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
@@ -203,8 +196,6 @@ function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
 
     currentIdx = 1;
 
-    %Z = zeros(K * r1 * I, r1 * r2);
-
     Jtest = zeros(K * r1 * I, 1);
     for i=1:K
 
@@ -222,9 +213,6 @@ function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
             end
         end
 
-        %Z((i-1) * r1 * I + 1 : i * r1 * I, :) = ...
-        % kron(diag(D1(i,:)), W*diag(D2(i,:)));
-
         temp = X(:,:,i) * pinv(Zt);
         Jtest((i-1)*r1*I + 1 : i *r1*I ,:) = ...
             reshape(temp, [], 1);
@@ -238,47 +226,47 @@ function [Vt] = updateVt(X, W, D1, D2, Zt, I, J, K, r1, r2)
 end
 
 function [D1] = updateD1(X, W, Vt, Zt, D2, K, I, r1)
-    D1 = zeros(K, r1);
-    for k=1:K
-        Fk = W * diag(D2(k,:))' * Vt;
-        xk = reshape(X(:,:,k)', numel(X(:,:,k)), 1);
+%     D1 = zeros(K, r1);
+%     for k=1:K
+%         Fk = W * diag(D2(k,:)) * Vt;
+%         xk = reshape(X(:,:,k), numel(X(:,:,k)), 1);
+% 
+%         D1(k,:) = (kr(Zt', Fk) \ xk)';
+%     end
+    
+    rowList = zeros(K * r1 * r1 * I,1);
+    colList = zeros(K * r1 * r1 * I,1);
+    valList = zeros(K * r1 * r1 * I,1);
+    currentIdx = 1;
 
-        D1(k,:) = (kr(Fk, Zt') \ xk)';
+    Jtest = zeros(K * I * r1,1);
+    
+    Ir1 = eye(r1);
+    for i=1:K
+        
+        A = W * diag(D2(i,:)) * Vt;
+        C = kr(Ir1, A);
+
+        for j=1: I*r1
+            for k=1:r1
+                rowList(currentIdx) = (i-1) * r1 * I + j;
+                colList(currentIdx) = (i-1) * r1 + k;
+                valList(currentIdx) = C(j,k);
+
+                currentIdx = currentIdx + 1;
+            end
+        end
+
+        temp = X(:,:,i) * pinv(Zt);
+        Jtest((i-1) * I * r1 + 1 : i * I * r1, :) = ...
+            reshape(temp, [],1);
     end
     
-%     rowList = zeros(K * r1 * r1 * I,1);
-%     colList = zeros(K * r1 * r1 * I,1);
-%     valList = zeros(K * r1 * r1 * I,1);
-%     currentIdx = 1;
-% 
-%     Jtest = zeros(K * I * r1,1);
-%     
-%     Ir1 = eye(r1);
-%     for i=1:K
-%         
-%         A = W * diag(D2(i,:)) * Vt;
-%         C = kr(Ir1, A);
-% 
-%         for j=1: I*r1
-%             for k=1:r1
-%                 rowList(currentIdx) = (i-1) * r1 * I + j;
-%                 colList(currentIdx) = (i-1) * r1 + k;
-%                 valList(currentIdx) = C(j,k);
-% 
-%                 currentIdx = currentIdx + 1;
-%             end
-%         end
-% 
-%         temp = X(:,:,i) * pinv(Zt);
-%         Jtest((i-1) * I * r1 + 1 : i * I * r1, :) = ...
-%             reshape(temp, [],1);
-%     end
-%     
-%     Z = sparse(rowList, colList, valList);
-% 
-%     d1 = Z \ Jtest; 
-% 
-%     D1 = reshape(d1, r1, K)'; 
+    Z = sparse(rowList, colList, valList);
+
+    d1 = Z \ Jtest; 
+
+    D1 = reshape(d1, r1, K)'; 
 end
 
 function [Zt] = updateZt(X, W, D1, Vt, D2, I, J, K, r1)
@@ -289,7 +277,6 @@ function [Zt] = updateZt(X, W, D1, Vt, D2, I, J, K, r1)
             W*diag(D2(i,:))*Vt*diag(D1(i,:));
     end
 
-    %Zt = F \ unfoldX; % Paper gebruikt F^T (lijkt verkeerd)
     Zt = F \ tens2mat(X, [1 3], 2);
 end
 
